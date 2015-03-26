@@ -32,17 +32,36 @@ namespace Aeb34Exporter
 		private Aeb34ExportSettings _Settings;
 
 
+		//TOTALS FOR SEPA SECTION
 		private int _SepaTotalRecipients = 0;
 		private int _SepaTotalRecords = 0;
 		private double _SepaTotalAmount = 0;
 
 
+		//GLOBAL TOTALS
 		private int _GlobalTotalRecipients = 0;
 		private int _GlobalTotalRecords = 0;
 		private double _GlobalTotalAmount = 0;
 
 
 		private Stream _Stream;
+
+
+		/// <summary>
+		/// Main constructor
+		/// </summary>
+		/// <param name="settings">AEB34 settings containing recipients</param>
+		/// <param name="stream">Stream to write the contents</param>
+		public Exporter(Aeb34ExportSettings settings, Stream stream)
+		{
+			if (settings == null)
+				throw new NullReferenceException("AEB34 settings cannot be null");
+			if (stream == null)
+				throw new NullReferenceException("Stream for AEB34 export cannot be null");
+
+			_Settings = settings;
+			_Stream = stream;
+		}
 
 
 		/// <summary>
