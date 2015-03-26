@@ -8,94 +8,10 @@ using System.Threading.Tasks;
 
 namespace Aeb34Exporter
 {
-
-	public sealed class Aeb34Issuer
-	{
-		/// <summary>
-		/// Legal ID
-		/// </summary>
-		public string LegalID { get; set; }
-
-		/// <summary>
-		/// Issuer name
-		/// </summary>
-		public string Name { get; set; }
-
-		/// <summary>
-		/// Address
-		/// </summary>
-		public string Address1 { get; set; }
-
-		/// <summary>
-		/// Postal code + City
-		/// </summary>
-		public string Address2 { get; set; }
-
-		/// <summary>
-		/// State
-		/// </summary>
-		public string Address3 { get; set; }
-
-		/// <summary>
-		/// Issuer country
-		/// </summary>
-		public string Country { get; set; }
-
-		/// <summary>
-		/// Issuer bank account
-		/// </summary>
-		public string BankAccount { get; set; }
-	}
-
-
-	public sealed class Aeb34Recipient
-	{
-		public string LegalID { get; set; }
-
-		public string Name { get; set; }
-		public string Address1 { get; set; }
-		public string Address2 { get; set; }
-		public string Address3 { get; set; }
-		public string Country { get; set; }
-
-		public double Amount { get; set; }
-
-		public string BIC { get; set; }
-		public string BankAccount { get; set; }
-	}
-
-
-	public sealed class Aeb34ExportSettings
-	{
-		/// <summary>
-		/// Operations execution date
-		/// </summary>
-		public DateTime ExecutionDate { get; set; }
-
-		/// <summary>
-		/// Issuer data
-		/// </summary>
-		public Aeb34Issuer Issuer { get; set; }
-
-		/// <summary>
-		/// Issuer Reference
-		/// </summary>
-		public string Reference { get; set; }
-
-		/// <summary>
-		/// Transfer concept
-		/// </summary>
-		public string Concept { get; set; }
-
-		/// <summary>
-		/// List of recipients and amounts
-		/// </summary>
-		public List<Aeb34Recipient> Recipients { get; set; }
-
-	}
-
-
-    public class Exporter
+	/// <summary>
+	/// Main AEB34 file exporter
+	/// </summary>
+    public sealed class Exporter
     {	
 		//ISSUER RECORD
 			//HEADER RECORD SEPA TRANSFERS 
@@ -115,8 +31,16 @@ namespace Aeb34Exporter
 
 		private Aeb34ExportSettings _Settings;
 
-		private int _TotalSepaRecords = 0;
-		private double _TotalAmount = 0;
+
+		private int _SepaTotalRecipients = 0;
+		private int _SepaTotalRecords = 0;
+		private double _SepaTotalAmount = 0;
+
+
+		private int _GlobalTotalRecipients = 0;
+		private int _GlobalTotalRecords = 0;
+		private double _GlobalTotalAmount = 0;
+
 
 		private Stream _Stream;
 
@@ -147,6 +71,7 @@ namespace Aeb34Exporter
 			Write(new string(' ', numberOfBlanks));
 		}
 
+
 		/// <summary>
 		/// Writes date in YYYYMMDD
 		/// </summary>
@@ -154,6 +79,7 @@ namespace Aeb34Exporter
 		{
 			Write(date.ToString("yyyyMMdd"));
 		}
+
 
 		/// <summary>
 		/// Write currency value to the stream, with given padding
@@ -217,6 +143,9 @@ namespace Aeb34Exporter
 
 			//free
 			WriteBlanks(311);
+
+			//increase global total records
+			_GlobalTotalRecords++;
 		}
 
 
@@ -245,7 +174,11 @@ namespace Aeb34Exporter
 			//free
 			WriteBlanks(578);
 
-			_TotalSepaRecords++;
+			//increase SEPA total records
+			_SepaTotalRecords++;
+
+			//increase global total records
+			_GlobalTotalRecords++;
 		}
 
 
@@ -284,7 +217,9 @@ namespace Aeb34Exporter
 				if (recipient.Amount == 0)
 					throw new InvalidOperationException("Recipient amount cannot be zero");
 				WriteCurrency(recipient.Amount, 11);
-				_TotalAmount += recipient.Amount;
+
+				//increase sepa total amount
+				_SepaTotalAmount += recipient.Amount;
 
 				//shared expenses
 				Write("3");
@@ -316,19 +251,25 @@ namespace Aeb34Exporter
 				//free
 				WriteBlanks(99);
 
+				//increase SEPA total records
+				_SepaTotalRecords++;
 
-				_TotalSepaRecords++;
+				//increase SEPA total recipients
+				_SepaTotalRecipients++;
+
+				//increase GLOBAL total recipients
+				_GlobalTotalRecipients++;
+
+				//increase global total records
+				_GlobalTotalRecords++;
 			}
-
-
 		}
-
 
 
 		/// <summary>
 		/// Writes totals for sepa transfers
 		/// </summary>
-		private void WriteSepaTransferTotalRecord()
+		private void WriteSepaTransferTotalsRecord()
 		{
 			//RECORD CODE
 			Write("04");
@@ -337,14 +278,46 @@ namespace Aeb34Exporter
 			Write("SCT");
 
 			//Amount total
-			WriteCurrency(_TotalAmount, 17);
+			WriteCurrency(_SepaTotalAmount, 17);
+			
+			//increase global amount
+			_GlobalTotalAmount += _SepaTotalAmount;
 
 			//Total SEPA recipients
-			Write(_Settings.Recipients.Count.ToString(), 8);
+			Write(_SepaTotalRecipients.ToString(), 8);
 
 			//Total of SEPA transfer records, including header and total records
-			_TotalSepaRecords++;
-			Write(_TotalSepaRecords.ToString(), 10);
+			_SepaTotalRecords++;
+			Write(_SepaTotalRecords.ToString(), 10);
+
+			//free
+			WriteBlanks(560);
+
+			//increase global total records
+			_GlobalTotalRecords++;
+		}
+
+
+		/// <summary>
+		/// Writes global totals record
+		/// </summary>
+		private void WriteGlobalTotalsRecord()
+		{
+			//RECORD CODE
+			Write("99");
+
+			//OPERATION TYPE
+			Write("ORD");
+
+			//Global total
+			WriteCurrency(_GlobalTotalAmount, 17);
+
+			//Global total of recipients, code 002, 006 and 008
+			Write(_Settings.Recipients.Count.ToString(), 8);
+
+			//Global total of records
+			_GlobalTotalRecords++;
+			Write(_GlobalTotalRecords.ToString(), 10);
 
 			//free
 			WriteBlanks(560);

@@ -34,6 +34,9 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Aeb34ExportSettings.cs" />
+    <Compile Include="Aeb34Issuer.cs" />
+    <Compile Include="Aeb34Recipient.cs" />
     <Compile Include="Exporter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
