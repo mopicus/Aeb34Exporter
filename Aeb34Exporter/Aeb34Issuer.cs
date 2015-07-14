@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Aeb34Exporter
 {
 	/// <summary>
-	/// AEB34 Issuer data
+	/// AEB34 Issuer data modif
 	/// </summary>
 	public sealed class Aeb34Issuer
 	{
